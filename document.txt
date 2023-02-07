@@ -1,0 +1,17 @@
+why minimal api
+fundamentals
+validations
+DI
+crud
+code structuring
+
+
+why?
+get api without learning the basics
+no controller straight foward everything in Program.cs file
+		can have multiple files
+
+
+create project
+	api project->normal weba pi project
+	uncheck use controller 

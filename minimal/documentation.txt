@@ -1,0 +1,261 @@
+cleaning program.cs
+	remove code from program.cs
+
+first endpoint
+	add all api's before app.Run();
+
+	app.MapGet("/helloworld", () => "Hello world");
+	app.MapPost("/helloworld", () => "Hello world");
+	app.MapPut("/helloworld", () => "Hello world");
+	app.MapDelete("/helloworld", () => "Hello world");
+
+return types
+	app.MapGet("/helloworld", () => {
+		return Results.Ok("Hello World");
+	});
+
+
+Route parameters
+	app.MapGet("/helloworld/{id:int}", (int id) => {
+		return Results.Ok(id);
+	});
+
+
+CRUD operation 
+	create model for Coupons in models folder
+	create class for coupon store
+		sttaic class with static property for list of coupons
+
+
+
+CRUD operation on couponstore
+	
+	get
+
+produces andaccepts in minimal api
+	
+	.WithName("Name").Accepts<Coupon>("application.json").Produces<Coupon>(201).Produces(400);
+
+
+
+
+
+
+Dependency Injection
+
+
+	same as in .net core
+
+DTO
+	create class for DTO
+
+
+Automapper
+	
+	nuget packages 
+		Automapper
+		Automapper.Extension.Microsoft.DependencyInjection
+
+
+
+
+	create MappingConfig class
+
+
+	public class MappingConfig:Profile
+	{
+		public MappingConfig()
+		{
+			CreateMap<Model, ModelDTO>();
+			CreateMap<ModelDTO,Model>();
+		}
+	}
+
+
+	in program.cs 
+	builder.Services.AddAutoMapper(typeOf(MappingConfig));
+		
+		before builder.Build();
+
+
+	inject IMapper _mapper in api using DI
+
+	in method
+	 
+	 Model model=_mapper.Map<Model>(modelDTO);
+
+
+
+
+
+FluentValidators
+	modelstate validators are not available in minimal api
+
+	nuget packages
+		FluentValidation
+		FluentValidation.DepenencyInjectionExtensions
+
+
+
+		create class for validation
+
+		public class CouponCreateValidation : AbstractValidator<CouponCreateDTO>
+		{
+			public CouponCreateValidation()
+			{
+				RuleFor(model => model.Name).NotEmpty();
+				RuleFor(model => model.Percent).InclusiveBetween(1, 100);
+			}
+		}
+
+		inject IValidator<ModelDTO> _validator in the api
+
+		var validationResult= _validator.ValidateAsync(model)>getAwaitor().GetResult();
+		if(validationResult.IsValid)
+
+
+
+
+Async endpoint
+
+app.MapGet("/helloworld", async () => {
+		return Results.Ok("Hello World");
+	});
+
+
+Database and Repository
+
+	nuget packages
+		Microsoft.EntityFrameworkcore.sqlserver
+		Microsoft.EntityFrameworkcore.Tools;
+
+	add connection string in appsettings
+	create class for dbcontext and inject dbcontext
+
+	inject ApplicationDbContext in the api
+
+
+
+organizing minimal api
+	create new cs file
+
+	public static void ConfigureCouponEndPoint(this WebApplication app)
+	{
+		//cut eveything and paste here
+		
+	}
+
+	in program.cs add 
+
+	app.ConfigureCouponEndPoint();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Authentication and authorization
+	create table for user(LocalUser.cs)
+	add it in context
+	create dto for Localuser
+
+	insert into LocalUsers values('alvjose','Alvin','password','admin')
+	insert into LocalUsers values('alejose','Alex','password','user')
+
+	select * from LocalUsers
+
+
+
+	create dto's
+
+	RegistrationRequestDTO.cs
+	LoginRequestDTO.cs
+	UserDTO.cs
+	LoginResponseDTO.cs
+
+
+	Register Auth repository
+		IAuthRepository.cs
+		AuthRepository.cs
+
+
+
+	for jwt generation and verification
+		create entry in app settings
+			"ApiSettings": {
+				"Secret": "This is used to Verify and Sign JWT token"
+			  }
+			access this key in repository
+
+
+			
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key=Encoding.ASCII.GetBytes(secretKey);
+                var tokenDescriptor = new SecurityTokenDescriptor()
+                {
+                    Subject = new ClaimsIdentity(new List<Claim>()
+                    {
+                        new Claim(ClaimTypes.Name, user.Name),
+                        new Claim(ClaimTypes.Role, user.Role),
+                    }),
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    SigningCredentials= new SigningCredentials(new SymmetricSecurityKey(key),SecurityAlgorithms.HmacSha256Signature)
+                };
+                var token=tokenHandler.CreateToken(tokenDescriptor);
+                var loginResponseDTO = new LoginResponseDTO()
+                {
+                    User = _mapper.Map<UserDTO>(user),
+                    Token = new JwtSecurityTokenHandler().WriteToken(token)
+                };
+				return loginResponseDTO;
+
+	add authentication and authorization in the pipeline
+		app.UseAuthentication();
+		app.UseAuthorization();
+
+	AUthentication in Action
+		app.MapGet("api/Coupon", (ApplicationDbContext _db) => Results.Ok(_db.Coupons)).RequireAuthorization();
+
+	add authentication and authorization in builder
+
+
+
+	roles in minimal api
+		add policy in program.cs
+		
+
+		builder.Services.AddAuthorization(options =>
+		{
+			options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+		});
+
+		
+		app.MapGet("api/Coupon", (ApplicationDbContext _db) => Results.Ok(_db.Coupons)).RequireAuthorization("AdminOnly");
+
+
+
+
+
+
